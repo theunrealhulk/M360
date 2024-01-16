@@ -1,3 +1,6 @@
 {
-    "numberOfLevels":6
+    "numberOfLevels":6,
+    "hasWalkingView":true,
+    "hasFullTopView":true,
+    "isTypesIncluded":true
 }
