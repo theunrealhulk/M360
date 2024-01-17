@@ -28,14 +28,15 @@
         <div id="app">
     
                 <sidebar-component></sidebar-component>
-                <canvas-component></canvas-component>
+                <canvas-component :sidebar-data="data"></canvas-component>
 
         </div>
 
           
           
           <script type="module">
-            import { createApp } from 'vue';
+            import { createApp,watch  } from 'vue';
+            import { sharedState } from './assets/components/sharedState.js';
             import CanvasComponent from './assets/components/canvas.js';
             import SideBarComponent from './assets/components/sideBar.js';
 
@@ -44,7 +45,12 @@
                     return {
                         message: 'Hello Vue!'
                     }
-                }
+                },
+                created() {
+                watch(() => sharedState, (newState) => {
+                    // console.log('Shared State changed:', newState);
+                }, { deep: true });
+        }
             });
 
             // Register the components
