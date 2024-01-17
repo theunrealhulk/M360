@@ -12,7 +12,10 @@ export default {
             isPlaying: false,
             imgSource:"",
             lastMouseX: 0, // To track the last mouse X position
-            frameDelay: 100, // Delay in milliseconds between frames
+            frameDelay: 150, // Delay in milliseconds between frames
+            mouseMoveThreshold:20,
+            recentMousePositions: [], // Array to store recent mouse positions
+            maxRecentPositions: 5, // Maximum number of positions to track
         };
     },
     mounted() {
@@ -86,22 +89,40 @@ export default {
         onMouseMove(event) {
             if (this.isPlaying) {
                 const currentMouseX = event.offsetX;
-                const deltaX = currentMouseX - this.lastMouseX;
-        
-                if (deltaX > 0) {
-                    // Moving to the right
-                    this.currentFrame++;
-                } else if (deltaX < 0) {
-                    // Moving to the left
-                    this.currentFrame--;
+
+                // Update the array of recent mouse positions
+                this.recentMousePositions.push(currentMouseX);
+                if (this.recentMousePositions.length > this.maxRecentPositions) {
+                    this.recentMousePositions.shift(); // Remove the oldest position
                 }
-        
-                // Correct the frame index and draw the image
-                this.currentFrame = this.correctFrameIndex(this.currentFrame);
-                this.drawImageOnCanvas(this.images[this.currentFrame]);
-        
-                this.lastMouseX = currentMouseX; // Update the last mouse X position
+
+                // Determine the direction of movement based on average
+                const avgDelta = this.calculateAverageDelta();
+                if (Math.abs(avgDelta) > this.mouseMoveThreshold) {
+                    if (avgDelta > 0) {
+                        // Moving to the right (this is inverted to adapt with renderings i have)
+                        this.currentFrame--
+                    } else {
+                        // Moving to the left
+                        this.currentFrame++;
+                    }
+
+                    // Correct the frame index and draw the image
+                    this.currentFrame = this.correctFrameIndex(this.currentFrame);
+                    this.drawImageOnCanvas(this.images[this.currentFrame]);
+                }
             }
+        },
+
+        calculateAverageDelta() {
+            if (this.recentMousePositions.length < 2) {
+                return 0;
+            }
+            let totalDelta = 0;
+            for (let i = 1; i < this.recentMousePositions.length; i++) {
+                totalDelta += this.recentMousePositions[i] - this.recentMousePositions[i - 1];
+            }
+            return totalDelta / (this.recentMousePositions.length - 1);
         },
         correctFrameIndex(frame) {
             // Corrects the frame index to loop within the array bounds
