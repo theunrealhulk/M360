@@ -10,7 +10,9 @@ export default {
             images: [],
             currentFrame: 0,
             isPlaying: false,
-            imgSource:""
+            imgSource:"",
+            lastMouseX: 0, // To track the last mouse X position
+            frameDelay: 100, // Delay in milliseconds between frames
         };
     },
     mounted() {
@@ -82,28 +84,54 @@ export default {
             }
         },
         onMouseMove(event) {
-            console.log(this.imgSource);
-
-            if (this.isPlaying ) {
-                // Update frame based on mouse movement or keep playing
+            if (this.isPlaying) {
+                const currentMouseX = event.offsetX;
+                const deltaX = currentMouseX - this.lastMouseX;
+        
+                if (deltaX > 0) {
+                    // Moving to the right
+                    this.currentFrame++;
+                } else if (deltaX < 0) {
+                    // Moving to the left
+                    this.currentFrame--;
+                }
+        
+                // Correct the frame index and draw the image
+                this.currentFrame = this.correctFrameIndex(this.currentFrame);
+                this.drawImageOnCanvas(this.images[this.currentFrame]);
+        
+                this.lastMouseX = currentMouseX; // Update the last mouse X position
             }
         },
+        correctFrameIndex(frame) {
+            // Corrects the frame index to loop within the array bounds
+            if (frame >= this.images.length) {
+                return 0;
+            } else if (frame < 0) {
+                return this.images.length - 1;
+            }
+            return frame;
+        },
+    
+        startPlaying(event) {
+            this.isPlaying = true;
+            this.lastMouseX = event.offsetX; // Set initial mouse X position
+        },
+    
         stopPlaying(event) {
-            console.log(this.imgSource, 'stopPlaying');
-
             this.isPlaying = false;
         },
-        playClip() {
-            console.log(this.imgSource,"playClip");
+        // playClip() {
+        //     console.log(this.imgSource,"playClip");
 
-            if (!this.isPlaying || this.currentFrame >= this.images.length) {
-                this.currentFrame = 0;
-                return;
-            }
-            this.drawImageOnCanvas(this.images[this.currentFrame]);
-            this.currentFrame++;
-            requestAnimationFrame(this.playClip);
-        },
+        //     if (!this.isPlaying || this.currentFrame >= this.images.length) {
+        //         this.currentFrame = 0;
+        //         return;
+        //     }
+        //     this.drawImageOnCanvas(this.images[this.currentFrame]);
+        //     this.currentFrame++;
+        //     requestAnimationFrame(this.playClip);
+        // },
         drawImageOnCanvas(image) {
             const canvas = this.$refs.myCanvas;
             const ctx = canvas.getContext('2d');

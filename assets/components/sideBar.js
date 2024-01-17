@@ -46,7 +46,8 @@ export default {
         return {
             data: null,
             isToggled: false,
-            selectedLevel: 'lastLevel'
+            selectedLevel: 'lastLevel',
+            sideVal:true
         };
     },
     computed: {
