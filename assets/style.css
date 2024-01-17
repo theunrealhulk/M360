@@ -17,3 +17,7 @@ canvas {
     height: 100vh;
     background-color: #EEE;
 }
+.selected {
+    background-color: black; /* Example selected color */
+    color: white;
+}

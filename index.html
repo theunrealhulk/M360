@@ -5,13 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>M360</title>
         <!-- Tailwind CSS CDN -->
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <!-- jQuery CDN -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script src="assets/js.js"></script>
-        <link href="https://fonts.cdnfonts.com/css/gobold" rel="stylesheet">
-        <link href="assets/style.css" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
 
+        <!-- App Font -->
+        <link href="https://fonts.cdnfonts.com/css/gobold" rel="stylesheet">
+        <!-- App Css -->
+        <link href="assets/style.css" rel="stylesheet">
+        <!-- axios CDN -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.5/axios.min.js" integrity="sha512-TjBzDQIDnc6pWyeM1bhMnDxtWH0QpOXMcVooglXrali/Tj7W569/wd4E8EDjk1CwOAOPSJon1VfcEt1BI4xIrA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <!-- Vue 3 CDN -->
         <script type="importmap">
             {
               "imports": {
@@ -24,10 +26,10 @@
     <body>
         
         <div id="app">
-            <div id="canvas-container">
+    
                 <sidebar-component></sidebar-component>
                 <canvas-component></canvas-component>
-            </div>
+
         </div>
 
           
