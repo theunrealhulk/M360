@@ -2,5 +2,6 @@
     "numberOfLevels":6,
     "hasWalkingView":true,
     "hasFullTopView":true,
-    "isTypesIncluded":true
+    "isTypesIncluded":true,
+    "sequesnceLength":35
 }
