@@ -3,71 +3,79 @@ import { watch } from 'vue';
 
 export default {
     template: `
-        <canvas ref="myCanvas" width=1920 height=1080 class=" absolute top-0 left-0"></canvas>
+        <canvas ref="myCanvas" width="1920" height="1080" class="absolute top-0 left-0"></canvas>
     `,
     data() {
         return {
-            images: [],
+            lowResImages: [],
+            highResImages: [],
             currentFrame: 0,
             isPlaying: false,
-            imgSource:"",
-            lastMouseX: 0, // To track the last mouse X position
-            frameDelay: 150, // Delay in milliseconds between frames
-            mouseMoveThreshold:20,
-            recentMousePositions: [], // Array to store recent mouse positions
-            maxRecentPositions: 5, // Maximum number of positions to track
+            lastMouseX: 0,
+            lastMouseY: 0,
+            highResImage: null, 
+            mouseMoveThreshold: 5,
+            circles: [
+                { x: 500, y: 650, radius: 30, data: 'Circle 1' },
+                { x: 200, y: 250, radius: 30, data: 'Circle 2' },
+                // ... add more circles
+            ],
         };
     },
+    computed: {
+        levelKey() {
+            let level = sharedState.selectedLevel;
+            if (typeof level === 'number') {
+                return `R${level}`;
+            } else {
+                return level === 'firstLevel' ? 'BAS' : 'HAUT';
+            }
+        }
+    },
     mounted() {
-        watch(() => sharedState.isToggled, (newData) => {
-
-            
-            console.log( newData );
-
-        }, { immediate: true });
         watch(() => sharedState.selectedLevel, (newLevel) => {
+            if (newLevel || newLevel === 0) {
+                this.loadImages(this.levelKey, 'LQ', () => {
+                    this.loadImages(this.levelKey, 'HQ');
+                });
+            }
+        }, { immediate: true });
 
-                // this.updateCanvas(newLevel);
-        
-                    if(newLevel || newLevel === 0){    
-                    console.log( newLevel );
-                    switch(newLevel) {
-                        case "firstLevel" :
-                            this.imgSource = 'data/HQ/BAS_'
-                        break;
-                        case "lastLevel" :
-                            this.imgSource = 'data/HQ/HAUT_'
-                        break;
-                        default :
-                            this.imgSource = `data/HQ/R${newLevel}_`
-                        break;
-                        }
-                    }
-                    this.loadImages(this.imgSource);
-                }, { immediate: true });
-                this.loadImages(this.imgSource);
-                this.setupCanvas();
-            },
-                
+        this.setupCanvas();
+    },
     methods: {
-        loadImages(path) {
-            this.images = []; // Clear existing images
-            this.currentFrame = 0; // Reset the frame counter
+        loadImages(levelKey) {
+            // Reset arrays
+            this.lowResImages = [];
+            this.highResImages = [];
         
-            let imageSources = [];
-            for (let i = 0; i < 36; i++) {
-                imageSources.push(`${path}${i.toString().padStart(3, '0')}.jpg`);
+            let lowResSources = [];
+            let highResSources = [];
+            for (let i = 1; i <= 35; i++) {
+                lowResSources.push(`data/LQ/${levelKey}_${i.toString().padStart(3, '0')}.jpg`);
+                highResSources.push(`data/HQ/${levelKey}_${i.toString().padStart(3, '0')}.jpg`);
             }
         
-            imageSources.forEach((src, index) => {
+            // Preload high-resolution images and draw the first frame once it's loaded
+            highResSources.forEach((src, index) => {
                 const img = new Image();
                 img.onload = () => {
-                    this.images.push(img);
-        
-                    // If it's the first image, draw it on the canvas
+                    this.highResImages.push(img);
                     if (index === 0) {
-                        this.drawImageOnCanvas(img);
+                        this.drawImageOnCanvas(img); // Draw first high-res frame
+                        this.loadLowResImages(lowResSources); // Load low-res images after drawing the first high-res frame
                     }
+                };
+                img.src = src;
+            });
+        },
+        
+        loadLowResImages(lowResSources) {
+            // Load low-resolution images
+            lowResSources.forEach(src => {
+                const img = new Image();
+                img.onload = () => {
+                    this.lowResImages.push(img);
                 };
                 img.src = src;
             });
@@ -77,87 +85,72 @@ export default {
             canvas.addEventListener('mousedown', this.startPlaying);
             canvas.addEventListener('mousemove', this.onMouseMove);
             window.addEventListener('mouseup', this.stopPlaying);
-            console.log(this.imgSource);
+            canvas.addEventListener('click', this.handleCanvasClick);
         },
         startPlaying(event) {
-            // Only start playing if there are images loaded
-            if (this.images.length > 0) {
-                this.isPlaying = true;
-                this.playClip();
-            }
+            this.isPlaying = true;
+            this.lastMouseX = event.offsetX;
+            this.loadImages(this.levelKey, 'LQ');
         },
         onMouseMove(event) {
-            if (this.isPlaying) {
-                const currentMouseX = event.offsetX;
-
-                // Update the array of recent mouse positions
-                this.recentMousePositions.push(currentMouseX);
-                if (this.recentMousePositions.length > this.maxRecentPositions) {
-                    this.recentMousePositions.shift(); // Remove the oldest position
-                }
-
-                // Determine the direction of movement based on average
-                const avgDelta = this.calculateAverageDelta();
-                if (Math.abs(avgDelta) > this.mouseMoveThreshold) {
-                    if (avgDelta > 0) {
-                        // Moving to the right (this is inverted to adapt with renderings i have)
-                        this.currentFrame--
-                    } else {
-                        // Moving to the left
-                        this.currentFrame++;
-                    }
-
-                    // Correct the frame index and draw the image
-                    this.currentFrame = this.correctFrameIndex(this.currentFrame);
-                    this.drawImageOnCanvas(this.images[this.currentFrame]);
-                }
+            if (!this.isPlaying) return; // Only proceed if isPlaying is true
+    
+            const currentMouseX = event.offsetX;
+            const deltaX = currentMouseX - this.lastMouseX;
+    
+            // Check for significant mouse movement
+            if (Math.abs(deltaX) > this.mouseMoveThreshold) {
+                this.currentFrame += deltaX > 0 ? 1 : -1; // Increment or decrement frame
+                this.currentFrame = this.correctFrameIndex(this.currentFrame); // Correct the frame index
+                this.drawImageOnCanvas(this.lowResImages[this.currentFrame]); // Draw the new frame
+                this.lastMouseX = currentMouseX; // Update the last mouse X position
             }
         },
-
-        calculateAverageDelta() {
-            if (this.recentMousePositions.length < 2) {
-                return 0;
-            }
-            let totalDelta = 0;
-            for (let i = 1; i < this.recentMousePositions.length; i++) {
-                totalDelta += this.recentMousePositions[i] - this.recentMousePositions[i - 1];
-            }
-            return totalDelta / (this.recentMousePositions.length - 1);
-        },
+    
         correctFrameIndex(frame) {
-            // Corrects the frame index to loop within the array bounds
-            if (frame >= this.images.length) {
+            // Corrects the frame index to loop within the bounds of the lowResImages array
+            if (frame >= this.lowResImages.length) {
                 return 0;
             } else if (frame < 0) {
-                return this.images.length - 1;
+                return this.lowResImages.length - 1;
             }
             return frame;
         },
     
-        startPlaying(event) {
-            this.isPlaying = true;
-            this.lastMouseX = event.offsetX; // Set initial mouse X position
-        },
-    
         stopPlaying(event) {
             this.isPlaying = false;
+            if (this.highResImages[this.currentFrame]) {
+                this.drawImageOnCanvas(this.highResImages[this.currentFrame]);
+            }
         },
-        // playClip() {
-        //     console.log(this.imgSource,"playClip");
-
-        //     if (!this.isPlaying || this.currentFrame >= this.images.length) {
-        //         this.currentFrame = 0;
-        //         return;
-        //     }
-        //     this.drawImageOnCanvas(this.images[this.currentFrame]);
-        //     this.currentFrame++;
-        //     requestAnimationFrame(this.playClip);
-        // },
         drawImageOnCanvas(image) {
             const canvas = this.$refs.myCanvas;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        }
+            if (sharedState.isToggled && typeof sharedState.selectedLevel === 'number') {
+                this.circles.forEach(circle => {
+                    if (this.isMouseClose(circle)) {
+                        ctx.beginPath();
+                        ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+            }
+        },
+        isMouseClose(circle) {
+            const distance = Math.sqrt(Math.pow(this.lastMouseX - circle.x, 2) + Math.pow(this.lastMouseY - circle.y, 2));
+            return distance < 30;
+        },
+        handleCanvasClick(event) {
+            const mouseX = event.offsetX;
+            const mouseY = event.offsetY;
+            this.circles.forEach(circle => {
+                const distance = Math.sqrt(Math.pow(mouseX - circle.x, 2) + Math.pow(mouseY - circle.y, 2));
+                if (distance < circle.radius) {
+                    console.log('Circle clicked:', circle.data);
+                }
+            });
+        },
     }
 };
